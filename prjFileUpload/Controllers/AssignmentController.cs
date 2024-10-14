@@ -22,9 +22,12 @@ namespace prjFileUpload.Controllers
             {
                 var fileName = Path.GetFileName(file.FileName);
                 var path = Path.Combine(_environment.WebRootPath, "uploads", fileName);
-                using (var stream = new FileStream(path, FileMode.Create))
+                using (var memoryStream = new MemoryStream())
                 {
-                    file.CopyTo(stream);
+                    file.CopyTo(memoryStream);
+                    var fileBytes = memoryStream.ToArray();
+                    var encryptedBytes = EncryptionHelper.Encrypt(fileBytes);
+                    System.IO.File.WriteAllBytes(path, encryptedBytes);
                 }
                 assignments.Add(new Assignment
                 {
@@ -39,8 +42,9 @@ namespace prjFileUpload.Controllers
         public IActionResult OpenFile(string fileName)
         {
             var path = Path.Combine(_environment.WebRootPath, "uploads", fileName);
-            var fileBytes =System.IO.File.ReadAllBytes(path);
-            return File(fileBytes, "application/octet-stream", fileName);
+            var encryptedBytes = System.IO.File.ReadAllBytes(path);
+            var decryptedBytes=EncryptionHelper.Decrypt(encryptedBytes);
+            return File(decryptedBytes, "application/octet-stream", fileName);
         }
     }
 }
